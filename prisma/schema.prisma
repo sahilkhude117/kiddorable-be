@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String
+  name           String?
+  purchases      Purchase[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Product {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  description    String    @db.Text
+  thumbnailImage String    // URL to image
+  previewPages   String[]  // Array of preview image URLs
+  originalPrice  Float
+  driveLink      String?   // Link to downloadable file (e.g., Google Drive)
+  discountedPrice Float
+  downloadCount  Int       @default(0)
+  rating         Int       @default(0)
+  purchases      Purchase[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  @@index([downloadCount])
+}
+
+model Purchase {
+  id             String    @id @default(cuid())
+  userId         String?   // Nullable for unauthenticated users
+  productId      String
+  orderId        String    @unique // Razorpay order ID
+  paymentId      String?   // Razorpay payment ID (optional until payment is verified)
+  status         Status    @default(PENDING)
+  email          String    // Email of the user (required for unauthenticated users)
+  name           String    // Name of the user (required for unauthenticated users)
+  user           User?     @relation(fields: [userId], references: [id])
+  product        Product   @relation(fields: [productId], references: [id])
+  createdAt      DateTime  @default(now())
+  purchasedAt    DateTime? // Timestamp when the purchase was completed
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+}
+
+model Testimonial {
+  id          String    @id @default(cuid())
+  name        String
+  profession  String
+  content     String    @db.Text
+  createdAt   DateTime  @default(now())
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
